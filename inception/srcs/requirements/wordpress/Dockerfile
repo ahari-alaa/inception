@@ -1,17 +1,28 @@
 FROM debian:bullseye
 
-RUN apt-get update && apt-get install -y php-fpm php-mysql \ 
-	   wget php-curl php-gd php-mbstring \
-	&& wget https://wordpress.org/latest.tar.gz \
-	&& tar -xzf latest.tar.gz \
-	&& mkdir -p /var/www/html \
-	&& mv wordpress /var/www/html/
+RUN apt-get update && \
+    apt-get install -y \
+        php \
+        php-fpm \
+        php-mysql \
+        php-curl \
+        php-gd \
+        php-mbstring \
+        wget && \
+    rm -rf /var/lib/apt/lists/*
 
+# Create required directories
+RUN mkdir -p /run/php /var/www
 
-COPY conf/setup.sh /setup.sh
+# Download WordPress correctly
+RUN wget https://wordpress.org/latest.tar.gz -O /tmp/wordpress.tar.gz && \
+    tar -xzf /tmp/wordpress.tar.gz -C /var/www && \
+    rm /tmp/wordpress.tar.gz
 
-RUN chmod +x /setup.sh
+# Copy script
+COPY tools/init.sh /init.sh
+RUN chmod +x /init.sh
 
 EXPOSE 9000
 
-CMD ["bash", "/setup.sh"]
+ENTRYPOINT ["/init.sh"]
