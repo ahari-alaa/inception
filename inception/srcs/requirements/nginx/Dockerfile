@@ -1,22 +1,19 @@
-FROM debian:bullseye
+FROM debian:Bookworm
 
 RUN apt-get update && \
-    apt-get install -y nginx openssl && \
+    apt-get install -y nginx openssl gettext-base && \
     rm -rf /var/lib/apt/lists/*
 
 # Create SSL folder
 RUN mkdir -p /etc/nginx/ssl
 
-# Generate self-signed certificate
-RUN openssl req -x509 -nodes -days 365 \
-    -newkey rsa:2048 \
-    -keyout /etc/nginx/ssl/nginx.key \
-    -out /etc/nginx/ssl/nginx.crt \
-    -subj "/C=MA/ST=BG/L=Khouribga/O=42/OU=1337/CN=localhost"
+# Copy config as a template
+COPY conf/nginx.conf /etc/nginx/templates/nginx.conf.template
 
-# Copy config
-COPY conf/nginx.conf /etc/nginx/conf.d/default.conf
+# Copy entrypoint script
+COPY tools/nginx.sh /nginx.sh
+RUN chmod +x /nginx.sh
 
 EXPOSE 443
 
-CMD ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/nginx.sh"]

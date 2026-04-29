@@ -1,11 +1,16 @@
 #!/bin/bash
 set -e
 
+# Read passwords from Docker secrets
+MYSQL_PASSWORD=$(cat /run/secrets/db_password)
+WP_ADMIN_PASSWORD=$(cat /run/secrets/wp_admin_password)
+WP_USER_PASSWORD=$(cat /run/secrets/wp_user_password)
+
 mkdir -p /run/php
 sed -i 's|listen = .*|listen = 9000|' /etc/php/7.4/fpm/pool.d/www.conf
 cd /var/www/wordpress || exit 1
 
-# Wait for MariaDB FIRST
+# Wait for MariaDB
 echo "Waiting for database..."
 until mysqladmin ping -h mariadb -u "${MYSQL_USER}" -p"${MYSQL_PASSWORD}" --silent 2>/dev/null; do
     echo "Still waiting for database..."
@@ -13,7 +18,7 @@ until mysqladmin ping -h mariadb -u "${MYSQL_USER}" -p"${MYSQL_PASSWORD}" --sile
 done
 echo "Database is ready!"
 
-# THEN create wp-config.php
+# Create wp-config.php if it does not exist
 if [ ! -f "wp-config.php" ]; then
     echo "Configuring WordPress..."
     wp config create \
@@ -24,7 +29,7 @@ if [ ! -f "wp-config.php" ]; then
         --allow-root
 fi
 
-# Run WordPress installation
+# Install WordPress if not already installed
 if ! wp core is-installed --allow-root 2>/dev/null; then
     echo "Installing WordPress..."
     wp core install \
